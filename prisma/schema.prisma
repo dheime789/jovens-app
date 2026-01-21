@@ -1,0 +1,120 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- USUÁRIOS (JOVENS) ---
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String?   @unique
+  phone         String?   // Para o líder ligar
+  password      String?
+  role          Role      @default(JOVEM)
+
+  // Gamificação (A parte divertida)
+  xp            Int       @default(0)
+  level         Int       @default(1)
+  currentStreak Int       @default(0) // A "Chama" 🔥 (Dias seguidos)
+  bestStreak    Int       @default(0) // Recorde pessoal
+  lastActivity  DateTime  @default(now())
+
+  // Comunhão
+  squadId       String?   // A qual "Tribo" pertence
+  squad         Squad?    @relation(fields: [squadId], references: [id])
+
+  // Histórico
+  attendances   Attendance[]
+  quizResults   QuizResult[]
+  notifications Notification[]
+
+  createdAt     DateTime  @default(now())
+}
+
+enum Role {
+  JOVEM
+  LIDER     // Cuida de um esquadrão
+  PROFESSOR // Cria lições
+  ADMIN     // Pastor/Você
+}
+
+// --- TRIBOS / ESQUADRÕES ---
+model Squad {
+  id          String   @id @default(cuid())
+  name        String   // Ex: "Tribo de Judá", "Águias"
+  totalXp     Int      @default(0) // Pontuação da Tribo (Competição)
+  members     User[]
+}
+
+// --- EBD E QUIZZES ---
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String   // Ex: "A Importância da Oração"
+  content     String   // O texto da lição
+  date        DateTime // Data da aula
+  isPublished Boolean  @default(false)
+
+  questions   Question[]
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  lessonId    String
+  text        String   // "Quem derrubou as muralhas?"
+  optionA     String
+  optionB     String
+  optionC     String
+  optionD     String
+  correctOption String // "A", "B", "C" ou "D"
+  xpReward    Int      @default(50) // Vale pontos!
+
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  results     QuizResult[]
+}
+
+model QuizResult {
+  id          String   @id @default(cuid())
+  userId      String
+  questionId  String
+  isCorrect   Boolean
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  question    Question @relation(fields: [questionId], references: [id])
+}
+
+// --- PRESENÇA ---
+model Attendance {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @default(now())
+  type      EventType
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum EventType {
+  EBD
+  QUIZ
+  CULTO_DOMINGO
+  CULTO_QUINTA
+  EVENTO_EXTRA
+}
+
+// --- NOTIFICAÇÕES ---
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   // "Sua chama apagou! 😢"
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
