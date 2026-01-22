@@ -15,11 +15,11 @@ model User {
   name          String
   email         String?   @unique
   phone         String?   // Para o líder ligar
-  password      String?
+  password      String?   // Senha do aluno (Opcional para não quebrar quem já existe)
   role          Role      @default(JOVEM)
 
   // FOTO DE PERFIL (NOVO CAMPO)
-  avatar        String    @default("1")
+  avatar        String    @default("1") // Vamos usar números para os avatares (Ex: 1, 2, 3...)
 
   // Gamificação (A parte divertida)
   xp            Int       @default(0)

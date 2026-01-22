@@ -1,124 +1,74 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-// Removi as importações do Select que podiam dar erro
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { UserPlus, Lock, User } from "lucide-react";
 
 export default function CadastroPage() {
 
-    // Essa função roda no servidor
-    async function cadastrarJovem(formData: FormData) {
+    async function cadastrar(formData: FormData) {
         "use server";
 
-        console.log("--- INICIANDO PROCESSO DE CADASTRO ---");
+        const name = formData.get("name") as string;
+        const password = formData.get("password") as string;
 
-        const nome = formData.get("nome") as string;
-        const telefone = formData.get("telefone") as string;
-        const triboId = formData.get("tribo") as string;
+        if (!name || !password) return;
 
-        // 1. CAPTURAR O AVATAR ESCOLHIDO (Se não vier nada, define o padrão "1")
-        const avatar = formData.get("avatar") as string || "1";
+        // Verifica se já existe alguém com esse nome
+        const jaExiste = await prisma.user.findFirst({
+            where: { name: { equals: name, mode: 'insensitive' } }
+        });
 
-        console.log("1. Dados recebidos:", nome, telefone, triboId, avatar);
-
-        try {
-            // 2. SALVAMOS TUDO NO BANCO
-            await prisma.user.create({
-                data: {
-                    name: nome,
-                    phone: telefone,
-                    squadId: triboId,
-                    avatar: avatar,
-                }
-            });
-
-        } catch (erro) {
-            console.error("❌ ERRO GRAVE AO SALVAR:", erro);
-            return;
+        if (jaExiste) {
+            redirect("/cadastro?erro=nome_em_uso");
         }
 
-        console.log("4. Redirecionando para a Home...");
-        redirect("/");
+        // Cria o Jovem (Sem tribo ainda)
+        await prisma.user.create({
+            data: {
+                name: name,
+                password: password, // Em app real usaria criptografia, mas aqui vai simples
+                role: "JOVEM",
+                level: 1,
+                xp: 0
+            }
+        });
+
+        // Manda para o Login
+        redirect("/login?sucesso=criado");
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-white mb-2">Junte-se à Tribo 🚀</h1>
-                    <p className="text-slate-400">Crie sua conta para começar a ganhar XP</p>
-                </div>
-
-                <form action={cadastrarJovem} className="space-y-6">
-
-                    <div className="space-y-2">
-                        <Label htmlFor="nome" className="text-slate-200">Seu Nome Completo</Label>
-                        <Input name="nome" placeholder="Ex: Davi O Valente" className="bg-slate-950 border-slate-800 text-white" required />
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+            <Card className="w-full max-w-md bg-slate-900 border-slate-800">
+                <CardHeader className="text-center">
+                    <div className="mx-auto bg-slate-800 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                        <UserPlus className="w-8 h-8 text-violet-500" />
                     </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="telefone" className="text-slate-200">WhatsApp</Label>
-                        <Input name="telefone" placeholder="(69) 99999-9999" className="bg-slate-950 border-slate-800 text-white" required />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label className="text-slate-200">Escolha sua Tribo</Label>
-                        {/* SUBSTITUI O SELECT POR HTML NATIVO (BLINDADO CONTRA ERROS) */}
-                        <select
-                            name="tribo"
-                            required
-                            defaultValue=""
-                            className="flex h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2"
-                        >
-                            <option value="" disabled>Selecione...</option>
-                            <option value="tribo-juda">Tribo de Judá 🦁</option>
-                            <option value="tribo-simeao">Tribo de Simeão ⚔️</option>
-                            <option value="tribo-naftali">Tribo de Naftali 🦌</option>
-                            <option value="tribo-benjamim">Tribo de Benjamim 🐺</option>
-                            <option value="tribo-levi">Tribo de Levi 🛡️</option>
-                            <option value="tribo-ruben">Tribo de Rúben 🌊</option>
-                        </select>
-                    </div>
-
-                    {/* --- SELEÇÃO DE AVATAR --- */}
-                    <div className="space-y-3 pt-2">
-                        <Label className="text-slate-200">Escolha seu Avatar</Label>
-                        <div className="grid grid-cols-4 gap-3">
-                            {[
-                                { id: "1", emoji: "🧑" }, // Jovem Padrão
-                                { id: "2", emoji: "🦁" }, // Leão
-                                { id: "3", emoji: "🦅" }, // Águia
-                                { id: "4", emoji: "👑" }, // Rei/Rainha
-                                { id: "5", emoji: "🛡️" }, // Guerreiro
-                                { id: "6", emoji: "🐑" }, // Ovelha
-                                { id: "7", emoji: "🔥" }, // Profeta
-                                { id: "8", emoji: "⚔️" }, // Soldado
-                            ].map((av) => (
-                                <label key={av.id} className="cursor-pointer relative group">
-                                    <input
-                                        type="radio"
-                                        name="avatar"
-                                        value={av.id}
-                                        className="peer sr-only"
-                                        defaultChecked={av.id === "1"}
-                                    />
-                                    <div className="h-14 w-14 bg-slate-800 rounded-full flex items-center justify-center text-2xl border-2 border-slate-700
-                                    peer-checked:border-violet-500 peer-checked:bg-violet-500/20 peer-checked:scale-110
-                                    transition-all duration-200 hover:bg-slate-700 hover:border-slate-500 shadow-lg">
-                                        {av.emoji}
-                                    </div>
-                                </label>
-                            ))}
+                    <CardTitle className="text-2xl font-bold text-white">Criar Personagem</CardTitle>
+                    <p className="text-slate-400">Comece sua jornada agora</p>
+                </CardHeader>
+                <CardContent>
+                    <form action={cadastrar} className="space-y-4">
+                        <div className="relative">
+                            <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                            <Input name="name" placeholder="Seu Nome Completo" className="pl-10 bg-slate-950 border-slate-800 text-white" required />
                         </div>
-                    </div>
-
-                    <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-6 text-lg mt-4">
-                        ENTRAR NA GUERRA 🔥
-                    </Button>
-
-                </form>
-            </div>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                            <Input name="password" type="password" placeholder="Crie uma Senha Secreta" className="pl-10 bg-slate-950 border-slate-800 text-white" required />
+                        </div>
+                        <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700 font-bold">
+                            CRIAR CONTA
+                        </Button>
+                        <div className="text-center mt-4">
+                            <Link href="/login" className="text-sm text-slate-500 hover:text-white">Já tem conta? Entrar</Link>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }
