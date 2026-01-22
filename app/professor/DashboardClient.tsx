@@ -2,14 +2,23 @@
 
 import { useState } from "react";
 import {
-    LayoutDashboard, Users, CalendarCheck, BookOpen, LogOut,
-    PlusCircle, Search, Trash2, ShieldAlert, Pencil
+    LayoutDashboard,
+    Users,
+    CalendarCheck,
+    BookOpen,
+    LogOut,
+    PlusCircle,
+    Search,
+    Trash2,
+    ShieldAlert,
+    Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
+// --- TIPOS DE DADOS (Para o Build não reclamar) ---
 interface Aluno {
     id: string;
     name: string;
@@ -42,12 +51,19 @@ interface DashboardProps {
     onSair: () => void;
     onExcluirPresenca: (id: string) => void;
     onExcluirLicao: (id: string) => void;
-    onExcluirAluno: (id: string) => void; // <--- Recebendo a nova função
+    onExcluirAluno: (id: string) => void;
 }
 
 export default function DashboardClient({
-                                            totalAlunos, presencasHoje, alunos, presencas, licoes,
-                                            onSair, onExcluirPresenca, onExcluirLicao, onExcluirAluno
+                                            totalAlunos,
+                                            presencasHoje,
+                                            alunos,
+                                            presencas,
+                                            licoes,
+                                            onSair,
+                                            onExcluirPresenca,
+                                            onExcluirLicao,
+                                            onExcluirAluno
                                         }: DashboardProps) {
 
     const [abaAtiva, setAbaAtiva] = useState("visao-geral");
@@ -61,26 +77,40 @@ export default function DashboardClient({
     return (
         <div className="flex min-h-screen bg-slate-950 text-white">
 
-            {/* SIDEBAR */}
+            {/* --- MENU LATERAL --- */}
             <aside className="w-64 border-r border-slate-800 bg-slate-900/50 hidden md:flex flex-col">
                 <div className="p-6 border-b border-slate-800">
                     <h1 className="text-xl font-bold flex items-center gap-2 text-white">
                         <ShieldAlert className="text-red-500" /> Admin Moriah
                     </h1>
                 </div>
+
                 <nav className="flex-1 p-4 space-y-2">
-                    <Button variant={abaAtiva === "visao-geral" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "visao-geral" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("visao-geral")}> <LayoutDashboard size={20} className="mr-3" /> Visão Geral </Button>
-                    <Button variant={abaAtiva === "alunos" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "alunos" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("alunos")}> <Users size={20} className="mr-3" /> Alunos </Button>
-                    <Button variant={abaAtiva === "presenca" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "presenca" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("presenca")}> <CalendarCheck size={20} className="mr-3" /> Presença </Button>
-                    <Button variant={abaAtiva === "licoes" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "licoes" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("licoes")}> <BookOpen size={20} className="mr-3" /> Lições </Button>
+                    <Button variant={abaAtiva === "visao-geral" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "visao-geral" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("visao-geral")}>
+                        <LayoutDashboard size={20} className="mr-3" /> Visão Geral
+                    </Button>
+                    <Button variant={abaAtiva === "alunos" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "alunos" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("alunos")}>
+                        <Users size={20} className="mr-3" /> Alunos
+                    </Button>
+                    <Button variant={abaAtiva === "presenca" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "presenca" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("presenca")}>
+                        <CalendarCheck size={20} className="mr-3" /> Presença
+                    </Button>
+                    <Button variant={abaAtiva === "licoes" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "licoes" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("licoes")}>
+                        <BookOpen size={20} className="mr-3" /> Lições
+                    </Button>
                 </nav>
+
                 <div className="p-4 border-t border-slate-800">
-                    <Button variant="outline" className="w-full border-red-900/30 text-red-400 hover:bg-red-950 hover:text-red-300" onClick={onSair}> <LogOut size={18} className="mr-2" /> Sair </Button>
+                    <Button variant="outline" className="w-full border-red-900/30 text-red-400 hover:bg-red-950 hover:text-red-300" onClick={onSair}>
+                        <LogOut size={18} className="mr-2" /> Sair
+                    </Button>
                 </div>
             </aside>
 
+            {/* --- ÁREA PRINCIPAL --- */}
             <main className="flex-1 bg-slate-950 p-6 overflow-auto">
-                {/* MOBILE MENU */}
+
+                {/* MENU MOBILE */}
                 <div className="md:hidden flex gap-2 mb-6 overflow-x-auto pb-2">
                     <Button size="sm" variant={abaAtiva === "visao-geral" ? "default" : "outline"} onClick={() => setAbaAtiva("visao-geral")}>Geral</Button>
                     <Button size="sm" variant={abaAtiva === "alunos" ? "default" : "outline"} onClick={() => setAbaAtiva("alunos")}>Alunos</Button>
@@ -118,7 +148,7 @@ export default function DashboardClient({
                     </div>
                 )}
 
-                {/* 2. ALUNOS (COM EXCLUIR) */}
+                {/* 2. ALUNOS (COMPLETO E COM BUSCA) */}
                 {abaAtiva === "alunos" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         <div className="flex justify-between items-center">
@@ -142,7 +172,7 @@ export default function DashboardClient({
                                         <th className="p-4">Tribo</th>
                                         <th className="p-4">Nível</th>
                                         <th className="p-4">XP</th>
-                                        <th className="p-4 text-right">Ação</th> {/* Nova Coluna */}
+                                        <th className="p-4 text-right">Ação</th>
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -152,7 +182,6 @@ export default function DashboardClient({
                                             <td className="p-4 text-slate-300">{aluno.squad?.name || "-"}</td>
                                             <td className="p-4 text-violet-400 font-bold">Lvl {aluno.level}</td>
                                             <td className="p-4 text-slate-400">{aluno.xp}</td>
-                                            {/* BOTÃO EXCLUIR ALUNO */}
                                             <td className="p-4 text-right">
                                                 <Button
                                                     variant="destructive" size="sm"
@@ -175,7 +204,7 @@ export default function DashboardClient({
                     </div>
                 )}
 
-                {/* 3. PRESENÇA */}
+                {/* 3. PRESENÇA (COMPLETO) */}
                 {abaAtiva === "presenca" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         <h2 className="text-2xl font-bold text-white">Registro de Presença</h2>
@@ -201,7 +230,7 @@ export default function DashboardClient({
                     </div>
                 )}
 
-                {/* 4. LIÇÕES */}
+                {/* 4. LIÇÕES (COM BOTÃO EDITAR CORRIGIDO) */}
                 {abaAtiva === "licoes" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         <div className="flex justify-between items-center">
@@ -215,7 +244,12 @@ export default function DashboardClient({
                                         <div> <h3 className="font-bold text-white text-lg">{licao.title}</h3> <p className="text-slate-400 text-sm"> {new Date(licao.date).toLocaleDateString('pt-BR')} • {Array.isArray(licao.questions) ? licao.questions.length : 0} Perguntas </p> </div>
                                         <div className="flex gap-2 items-center">
                                             <span className={licao.isPublished ? "px-2 py-1 rounded text-xs font-bold bg-green-500/10 text-green-400" : "px-2 py-1 rounded text-xs font-bold bg-yellow-500/10 text-yellow-400"}> {licao.isPublished ? "Publicado" : "Rascunho"} </span>
-                                            <Link href={`/professor/editar-licao/${licao.id}`}> <Button size="sm" className="bg-slate-800 text-white border border-slate-700 hover:bg-slate-700"> <Pencil size={14} className="mr-2" /> Editar </Button> </Link>
+
+                                            {/* BOTÃO CORRIGIDO: Agora tem cor de fundo */}
+                                            <Link href={`/professor/editar-licao/${licao.id}`}>
+                                                <Button size="sm" className="bg-slate-800 text-white border border-slate-700 hover:bg-slate-700"> <Pencil size={14} className="mr-2" /> Editar </Button>
+                                            </Link>
+
                                             <Button variant="destructive" size="sm" className="bg-red-900/20 text-red-500 hover:bg-red-900/40 border border-red-900/50" onClick={() => onExcluirLicao(licao.id)}> <Trash2 size={14} /> </Button>
                                         </div>
                                     </CardContent>
