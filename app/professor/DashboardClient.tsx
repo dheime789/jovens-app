@@ -110,12 +110,26 @@ export default function DashboardClient({
             {/* --- ÁREA PRINCIPAL --- */}
             <main className="flex-1 bg-slate-950 p-6 overflow-auto">
 
-                {/* MENU MOBILE */}
+                {/* MENU MOBILE CORRIGIDO */}
                 <div className="md:hidden flex gap-2 mb-6 overflow-x-auto pb-2">
-                    <Button size="sm" variant={abaAtiva === "visao-geral" ? "default" : "outline"} onClick={() => setAbaAtiva("visao-geral")}>Geral</Button>
-                    <Button size="sm" variant={abaAtiva === "alunos" ? "default" : "outline"} onClick={() => setAbaAtiva("alunos")}>Alunos</Button>
-                    <Button size="sm" variant={abaAtiva === "presenca" ? "default" : "outline"} onClick={() => setAbaAtiva("presenca")}>Presença</Button>
-                    <Button size="sm" variant={abaAtiva === "licoes" ? "default" : "outline"} onClick={() => setAbaAtiva("licoes")}>Lições</Button>
+                    {[
+                        { id: "visao-geral", label: "Geral" },
+                        { id: "alunos", label: "Alunos" },
+                        { id: "presenca", label: "Presença" },
+                        { id: "licoes", label: "Lições" }
+                    ].map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setAbaAtiva(item.id)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${
+                                abaAtiva === item.id
+                                    ? "bg-violet-600 text-white border border-violet-500"
+                                    : "bg-slate-900 text-slate-400 border border-slate-800"
+                            }`}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
                 </div>
 
                 {/* 1. VISÃO GERAL */}
