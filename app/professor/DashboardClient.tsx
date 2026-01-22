@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
-// --- TIPOS DE DADOS (Para o Build não reclamar) ---
+// --- TIPOS DE DADOS ---
 interface Aluno {
     id: string;
     name: string;
@@ -230,7 +230,7 @@ export default function DashboardClient({
                     </div>
                 )}
 
-                {/* 4. LIÇÕES (COM BOTÃO EDITAR CORRIGIDO) */}
+                {/* 4. LIÇÕES (COM BOTÃO EDITAR CINZA ESCURO CORRIGIDO) */}
                 {abaAtiva === "licoes" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         <div className="flex justify-between items-center">
@@ -245,7 +245,7 @@ export default function DashboardClient({
                                         <div className="flex gap-2 items-center">
                                             <span className={licao.isPublished ? "px-2 py-1 rounded text-xs font-bold bg-green-500/10 text-green-400" : "px-2 py-1 rounded text-xs font-bold bg-yellow-500/10 text-yellow-400"}> {licao.isPublished ? "Publicado" : "Rascunho"} </span>
 
-                                            {/* BOTÃO CORRIGIDO: Agora tem cor de fundo */}
+                                            {/* Botão de Editar VISÍVEL (fundo cinza) */}
                                             <Link href={`/professor/editar-licao/${licao.id}`}>
                                                 <Button size="sm" className="bg-slate-800 text-white border border-slate-700 hover:bg-slate-700"> <Pencil size={14} className="mr-2" /> Editar </Button>
                                             </Link>
