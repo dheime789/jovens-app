@@ -2,16 +2,15 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-    BookOpen,
     Trophy,
     CalendarCheck,
     LogOut,
+    BookOpen,
     BrainCircuit,
-    Swords,
-    ChevronRight,
-    Flame
+    Flame,
+    ChevronRight
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
@@ -27,22 +26,14 @@ export default async function AlunoDashboard() {
     });
 
     if (!aluno) redirect("/login");
+    if (!aluno.squadId) redirect("/aluno/escolher-tribo");
+    if (aluno.avatar === "1") redirect("/aluno/escolher-avatar");
 
-    // 1. SE NÃO TIVER TRIBO -> MANDA ESCOLHER
-    if (!aluno.squadId) {
-        redirect("/aluno/escolher-tribo");
-    }
-
-    // 2. SE O AVATAR AINDA FOR O PADRÃO ("1") -> MANDA ESCOLHER EMOJI
-    // (Isso garante que todo mundo tenha um emoji legal)
-    if (aluno.avatar === "1") {
-        redirect("/aluno/escolher-avatar");
-    }
-
-    // Busca a próxima lição disponível (Exemplo)
-    const proximaLicao = await prisma.lesson.findFirst({
-        where: { isPublished: true },
-        orderBy: { date: 'desc' }
+    // Histórico na tela inicial (igual o primeiro modelo)
+    const presencas = await prisma.attendance.findMany({
+        where: { userId: aluno.id },
+        orderBy: { date: 'desc' },
+        take: 5
     });
 
     async function sair() {
@@ -52,128 +43,117 @@ export default async function AlunoDashboard() {
         redirect("/login");
     }
 
-    // Cálculo de Nível
     const xpProximoNivel = aluno.level * 1000;
     const progresso = Math.min((aluno.xp / xpProximoNivel) * 100, 100);
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white pb-24">
+        <div className="min-h-screen bg-slate-950 text-white pb-20">
 
-            {/* --- CABEÇALHO PERFIL --- */}
-            <div className="bg-gradient-to-b from-violet-900/40 to-slate-950 border-b border-slate-800 p-6 pt-10">
-                <div className="max-w-md mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-
-                        {/* Avatar do Usuário (EMOJI) */}
-                        {/* Mudamos aqui para mostrar o Emoji e o fundo escuro */}
-                        <div className="h-14 w-14 rounded-full bg-slate-900 border-2 border-violet-500 flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+            {/* CABEÇALHO */}
+            <div className="bg-slate-900 border-b border-slate-800 p-6">
+                <div className="flex justify-between items-center max-w-md mx-auto">
+                    <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-full bg-slate-800 border-2 border-violet-500 flex items-center justify-center text-2xl">
                             {aluno.avatar}
                         </div>
-
                         <div>
-                            <h1 className="font-bold text-xl">{aluno.name}</h1>
-                            <div className="flex items-center gap-2 text-sm text-slate-300">
-                                <span className="bg-slate-800 px-2 py-0.5 rounded text-violet-300 font-bold border border-slate-700">Lvl {aluno.level}</span>
-                                <span className="flex items-center gap-1 text-yellow-500"><Flame size={14}/> {aluno.currentStreak} dias</span>
-                            </div>
+                            <h1 className="font-bold text-lg">{aluno.name}</h1>
+                            <p className="text-slate-400 text-xs flex items-center gap-1">
+                                <span className="text-violet-400 font-bold">{aluno.squad?.name}</span>
+                            </p>
                         </div>
                     </div>
-
                     <form action={sair}>
-                        <Button variant="ghost" size="icon" className="text-red-400 hover:bg-red-900/20 hover:text-red-300">
-                            <LogOut size={22} />
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-950/30">
+                            <LogOut size={20} />
                         </Button>
                     </form>
                 </div>
-
-                {/* Barra de XP */}
-                <div className="max-w-md mx-auto mt-6">
-                    <div className="flex justify-between text-xs text-slate-400 mb-1">
-                        <span>XP Atual: {aluno.xp}</span>
-                        <span>Próx: {xpProximoNivel}</span>
-                    </div>
-                    <Progress value={progresso} className="h-2 bg-slate-900 border border-slate-800" />
-                </div>
             </div>
 
-            <div className="max-w-md mx-auto p-6 space-y-8">
+            <div className="max-w-md mx-auto p-6 space-y-6">
 
-                {/* --- MENU PRINCIPAL (GRID BONITO) --- */}
-                <div>
-                    <h2 className="text-lg font-bold mb-4 text-white flex items-center gap-2">
-                        <Swords className="text-violet-500" size={20} /> Central de Comando
-                    </h2>
-
-                    <div className="grid grid-cols-2 gap-4">
-
-                        {/* Botão Lições */}
-                        <Link href="/aluno/licoes">
-                            <Card className="bg-slate-900 border-slate-800 hover:border-violet-500 hover:bg-slate-800 transition-all cursor-pointer h-full">
-                                <CardContent className="p-5 flex flex-col items-center justify-center text-center gap-3">
-                                    <div className="h-10 w-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-400">
-                                        <BookOpen size={24} />
-                                    </div>
-                                    <span className="font-bold text-white">Lições</span>
-                                </CardContent>
-                            </Card>
-                        </Link>
-
-                        {/* Botão Quiz */}
-                        <Link href="/aluno/quiz">
-                            <Card className="bg-slate-900 border-slate-800 hover:border-pink-500 hover:bg-slate-800 transition-all cursor-pointer h-full">
-                                <CardContent className="p-5 flex flex-col items-center justify-center text-center gap-3">
-                                    <div className="h-10 w-10 bg-pink-500/10 rounded-full flex items-center justify-center text-pink-400">
-                                        <BrainCircuit size={24} />
-                                    </div>
-                                    <span className="font-bold text-white">Quiz</span>
-                                </CardContent>
-                            </Card>
-                        </Link>
-
-                        {/* Botão Ranking */}
-                        <Link href="/aluno/ranking">
-                            <Card className="bg-slate-900 border-slate-800 hover:border-yellow-500 hover:bg-slate-800 transition-all cursor-pointer h-full">
-                                <CardContent className="p-5 flex flex-col items-center justify-center text-center gap-3">
-                                    <div className="h-10 w-10 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-400">
-                                        <Trophy size={24} />
-                                    </div>
-                                    <span className="font-bold text-white">Ranking</span>
-                                </CardContent>
-                            </Card>
-                        </Link>
-
-                        {/* Botão Presença */}
-                        <Link href="/aluno/presenca">
-                            <Card className="bg-slate-900 border-slate-800 hover:border-green-500 hover:bg-slate-800 transition-all cursor-pointer h-full">
-                                <CardContent className="p-5 flex flex-col items-center justify-center text-center gap-3">
-                                    <div className="h-10 w-10 bg-green-500/10 rounded-full flex items-center justify-center text-green-400">
-                                        <CalendarCheck size={24} />
-                                    </div>
-                                    <span className="font-bold text-white">Histórico</span>
-                                </CardContent>
-                            </Card>
-                        </Link>
-
+                {/* CARTÃO DE NÍVEL (O visual que você gostava) */}
+                <Card className="bg-slate-900 border-slate-800 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Trophy size={80} />
                     </div>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-slate-400 text-sm font-medium flex justify-between">
+                            <span>Seu Progresso</span>
+                            <span className="text-yellow-500 flex items-center gap-1"><Flame size={14}/> {aluno.currentStreak} dias seguidos</span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex justify-between items-end mb-2">
+                            <span className="text-3xl font-bold text-white">{aluno.xp} <span className="text-sm text-slate-500">XP</span></span>
+                            <span className="text-xl font-bold text-violet-400">Nível {aluno.level}</span>
+                        </div>
+                        <Progress value={progresso} className="h-3 bg-slate-800" />
+                        <p className="text-xs text-slate-500 mt-2 text-right">
+                            Faltam {xpProximoNivel - aluno.xp} XP para subir
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* MENU RÁPIDO (Botões menores para não poluir) */}
+                <div className="grid grid-cols-3 gap-3">
+                    <Link href="/aluno/presenca">
+                        <Button variant="outline" className="w-full h-auto py-3 flex flex-col gap-1 bg-slate-900 border-slate-800 hover:border-green-500 hover:text-green-400">
+                            <CalendarCheck size={20} className="text-green-500"/>
+                            <span className="text-xs">Presença</span>
+                        </Button>
+                    </Link>
+                    <Link href="/aluno/licoes">
+                        <Button variant="outline" className="w-full h-auto py-3 flex flex-col gap-1 bg-slate-900 border-slate-800 hover:border-blue-500 hover:text-blue-400">
+                            <BookOpen size={20} className="text-blue-500"/>
+                            <span className="text-xs">Lições</span>
+                        </Button>
+                    </Link>
+                    <Link href="/aluno/quiz">
+                        <Button variant="outline" className="w-full h-auto py-3 flex flex-col gap-1 bg-slate-900 border-slate-800 hover:border-pink-500 hover:text-pink-400">
+                            <BrainCircuit size={20} className="text-pink-500"/>
+                            <span className="text-xs">Quiz</span>
+                        </Button>
+                    </Link>
                 </div>
 
-                {/* --- DESTAQUE DA SEMANA --- */}
-                {proximaLicao && (
-                    <div className="bg-gradient-to-r from-violet-900/50 to-purple-900/50 rounded-xl p-6 border border-violet-500/30 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-20">
-                            <BookOpen size={80} />
-                        </div>
-                        <p className="text-violet-300 text-xs font-bold uppercase tracking-wider mb-1">Próxima Lição</p>
-                        <h3 className="text-xl font-bold text-white mb-2 max-w-[80%]">{proximaLicao.title}</h3>
-                        <p className="text-slate-300 text-sm mb-4 line-clamp-2">{proximaLicao.content.substring(0, 60)}...</p>
-
-                        <Link href={`/aluno/licoes/${proximaLicao.id}`}>
-                            <Button size="sm" className="bg-white text-violet-900 hover:bg-slate-200 font-bold border-0">
-                                Ler Agora <ChevronRight size={16} className="ml-1" />
-                            </Button>
-                        </Link>
+                {/* LISTA DE HISTÓRICO (De volta à tela inicial!) */}
+                <div>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <CalendarCheck size={18} className="text-violet-500"/>
+                            Últimas Atividades
+                        </h2>
+                        <Link href="/aluno/ranking" className="text-xs text-violet-400 hover:underline">Ver Ranking</Link>
                     </div>
-                )}
+
+                    {presencas.length === 0 ? (
+                        <div className="text-center py-8 text-slate-500 bg-slate-900 rounded-lg border border-slate-800">
+                            <p>Nenhuma atividade recente.</p>
+                            <Link href="/aluno/presenca">
+                                <Button size="sm" className="mt-2 bg-violet-600">Marcar Presença Agora</Button>
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {presencas.map((p) => (
+                                <div key={p.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-2 h-10 rounded-full ${p.type === 'EBD' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                                        <div>
+                                            <h3 className="font-bold text-white text-sm">{p.type === 'EBD' ? 'Escola Bíblica' : 'Culto/Evento'}</h3>
+                                            <p className="text-xs text-slate-400">
+                                                {new Date(p.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className="text-green-400 font-bold text-sm">+ {p.type === 'EBD' ? '50' : '20'} XP</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
             </div>
         </div>
