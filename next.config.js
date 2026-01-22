@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     eslint: {
-        // Ignora erros de lint durante o deploy
+        // Ignora erros de "regras" chatas
         ignoreDuringBuilds: true,
     },
     typescript: {
-        // Ignora erros de tipo durante o deploy
+        // Ignora erros de tipagem
         ignoreBuildErrors: true,
     },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
