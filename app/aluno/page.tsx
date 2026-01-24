@@ -32,8 +32,7 @@ export default async function AlunoDashboard() {
     // 1. Verifica Tribo
     if (!aluno.squadId) redirect("/aluno/escolher-tribo");
 
-    // 2. Verifica Avatar (PASSO 3 ATIVADO AQUI)
-    // Se o avatar for "1" (padrão), manda escolher um emoji
+    // 2. Verifica Avatar
     if (aluno.avatar === "1") redirect("/aluno/escolher-avatar");
 
     // --- LÓGICA DE TRAVA DA PRESENÇA ---
@@ -51,6 +50,11 @@ export default async function AlunoDashboard() {
             }
         }
     });
+
+    // --- CORREÇÃO VISUAL DO FOGUINHO 🔥 ---
+    // Se o aluno marcou hoje (presencaHoje existe), mas o banco diz 0 dias (bug anterior),
+    // o sistema força visualmente para mostrar 1 dia.
+    const diasSeguidos = (presencaHoje && aluno.currentStreak === 0) ? 1 : aluno.currentStreak;
 
     // Histórico na tela inicial
     const presencas = await prisma.attendance.findMany({
@@ -105,7 +109,8 @@ export default async function AlunoDashboard() {
                     <CardHeader className="pb-2">
                         <CardTitle className="text-slate-400 text-sm font-medium flex justify-between">
                             <span>Seu Progresso</span>
-                            <span className="text-yellow-500 flex items-center gap-1"><Flame size={14}/> {aluno.currentStreak} dias seguidos</span>
+                            {/* AQUI ESTÁ A VARIÁVEL CORRIGIDA (diasSeguidos) */}
+                            <span className="text-yellow-500 flex items-center gap-1"><Flame size={14}/> {diasSeguidos} dias seguidos</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
