@@ -13,13 +13,17 @@ import {
     ShieldAlert,
     Pencil,
     Settings,
-    AlertTriangle,   // <--- NOVO
-    MessageCircle    // <--- NOVO
+    AlertTriangle,
+    MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+
+// --- IMPORTAÇÃO DIRETA (A MÁGICA ACONTECE AQUI) ---
+// Ao importar direto, garantimos que a função existe e funciona
+import { reformularTribos, corrigirXPNegativo } from "./actions";
 
 // --- TIPOS DE DADOS ---
 interface Aluno {
@@ -28,7 +32,7 @@ interface Aluno {
     level: number;
     xp: number;
     squad?: { name: string } | null;
-    attendances?: { date: Date | string }[]; // <--- NOVO: Para saber a última data
+    attendances?: { date: Date | string }[];
 }
 
 interface Presenca {
@@ -52,13 +56,12 @@ interface DashboardProps {
     alunos: Aluno[];
     presencas: Presenca[];
     licoes: Licao[];
-    alunosAusentes: Aluno[]; // <--- NOVO: Recebe a lista de faltosos
+    alunosAusentes: Aluno[];
     onSair: () => void;
     onExcluirPresenca: (id: string) => void;
     onExcluirLicao: (id: string) => void;
     onExcluirAluno: (id: string) => void;
-    onReformularTribos: () => void;
-    onCorrigirXP: () => void; // <--- NOVO: Ação para zerar negativos
+    // Removemos onReformularTribos e onCorrigirXP daqui pois importamos direto lá em cima!
 }
 
 export default function DashboardClient({
@@ -67,13 +70,11 @@ export default function DashboardClient({
                                             alunos,
                                             presencas,
                                             licoes,
-                                            alunosAusentes, // <--- Pegando aqui
+                                            alunosAusentes,
                                             onSair,
                                             onExcluirPresenca,
                                             onExcluirLicao,
                                             onExcluirAluno,
-                                            onReformularTribos,
-                                            onCorrigirXP    // <--- Pegando aqui
                                         }: DashboardProps) {
 
     const [abaAtiva, setAbaAtiva] = useState("visao-geral");
@@ -85,14 +86,33 @@ export default function DashboardClient({
         (a.squad?.name || "").toLowerCase().includes(termoBusca.toLowerCase())
     );
 
+    // FUNÇÃO REFORMULAR (Atualizada)
     const handleReformular = async () => {
-        if (confirm("⚠️ PERIGO: Tem certeza? \n\nIsso apagará todas as tribos extras e manterá apenas Judá e Levi. Alunos de outras tribos terão que escolher novamente.")) {
+        if (confirm("⚠️ PERIGO: Tem certeza? \n\nIsso apagará todas as tribos extras e manterá apenas Judá e Levi.")) {
             setLoadingTribos(true);
-            await onReformularTribos();
+            try {
+                await reformularTribos(); // Chama direto a função importada
+                alert("Sistema reformulado com sucesso!");
+                window.location.reload(); // Força atualização da tela
+            } catch (e) {
+                alert("Erro ao reformular.");
+            }
             setLoadingTribos(false);
-            alert("Sistema reformulado com sucesso!");
         }
     };
+
+    // FUNÇÃO CORRIGIR XP (Atualizada)
+    const handleCorrigirXP = async () => {
+        if(confirm("Confirma a correção dos saldos negativos?")) {
+            try {
+                const resultado = await corrigirXPNegativo(); // Chama direto a função importada
+                alert(`Sucesso! ${resultado.count || 0} alunos foram corrigidos.`);
+                window.location.reload(); // Força atualização da tela para sumir o número negativo NA HORA
+            } catch (e) {
+                alert("Erro ao corrigir XP.");
+            }
+        }
+    }
 
     return (
         <div className="flex min-h-screen bg-slate-950 text-white">
@@ -164,7 +184,7 @@ export default function DashboardClient({
                 {abaAtiva === "visao-geral" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
 
-                        {/* --- NOVO: RADAR DE AUSÊNCIA --- */}
+                        {/* --- ALERTA DE AUSÊNCIA --- */}
                         {alunosAusentes && alunosAusentes.length > 0 && (
                             <Card className="bg-red-950/20 border-red-900/50 mb-6">
                                 <CardHeader className="pb-2">
@@ -193,7 +213,6 @@ export default function DashboardClient({
                                 </CardContent>
                             </Card>
                         )}
-                        {/* ------------------------------- */}
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <Card className="bg-slate-900 border-slate-800">
@@ -336,48 +355,25 @@ export default function DashboardClient({
                         <h2 className="text-2xl font-bold text-white">Configurações do Sistema</h2>
 
                         <div className="border border-red-800/30 bg-red-900/10 p-6 rounded-xl relative overflow-hidden">
-                            {/* Efeito de alerta */}
-                            <div className="absolute top-0 right-0 p-6 opacity-5">
-                                <ShieldAlert size={120} />
-                            </div>
-
-                            <h3 className="text-red-400 font-bold text-lg mb-2 flex items-center gap-2">
-                                <ShieldAlert size={20}/> Zona de Perigo: Reformulação
-                            </h3>
+                            <div className="absolute top-0 right-0 p-6 opacity-5"> <ShieldAlert size={120} /> </div>
+                            <h3 className="text-red-400 font-bold text-lg mb-2 flex items-center gap-2"> <ShieldAlert size={20}/> Zona de Perigo: Reformulação </h3>
                             <p className="text-slate-400 text-sm mb-6 max-w-2xl leading-relaxed">
-                                Esta ação irá <strong>excluir todas as tribos</strong> (Simeão, Naftali, Rúben, Benjamim, etc), mantendo apenas <strong>Judá 🦁</strong> e <strong>Levi 🛡️</strong>.
-                                <br/><br/>
-                                Os alunos que pertenciam às tribos excluídas ficarão "sem tribo" e serão forçados a escolher um novo lado no próximo login.
+                                Esta ação irá <strong>excluir todas as tribos</strong> extras, mantendo apenas Judá 🦁 e Levi 🛡️.
                             </p>
-
-                            <Button
-                                onClick={handleReformular}
-                                disabled={loadingTribos}
-                                className="bg-red-600 hover:bg-red-700 text-white font-bold h-12 px-6 shadow-lg shadow-red-900/20"
-                            >
-                                {loadingTribos ? "Processando..." : "EXECUTAR REFORMULAÇÃO (JUDÁ x LEVI)"}
+                            <Button onClick={handleReformular} disabled={loadingTribos} className="bg-red-600 hover:bg-red-700 text-white font-bold h-12 px-6 shadow-lg shadow-red-900/20">
+                                {loadingTribos ? "Processando..." : "EXECUTAR REFORMULAÇÃO"}
                             </Button>
                         </div>
 
-                        {/* --- NOVO: BOTÃO DE CORRIGIR XP NEGATIVO --- */}
+                        {/* --- BOTÃO DE CORRIGIR XP --- */}
                         <div className="border border-blue-800/30 bg-blue-900/10 p-6 rounded-xl mt-6 relative overflow-hidden">
                             <h3 className="text-blue-400 font-bold text-lg mb-2 flex items-center gap-2">
                                 💊 Enfermaria: Curar XP Negativo
                             </h3>
                             <p className="text-slate-400 text-sm mb-6 max-w-2xl">
-                                Se algum aluno ficou com saldo negativo (ex: -30 XP) por erro do sistema,
-                                este botão reseta o saldo deles para <strong>0 XP</strong>.
+                                Se algum aluno ficou com saldo negativo, clique aqui para resetar para <strong>0 XP</strong>.
                             </p>
-
-                            <Button
-                                onClick={async () => {
-                                    if(confirm("Confirma a correção dos saldos negativos?")) {
-                                        await onCorrigirXP();
-                                        alert("Saldos corrigidos! Ninguém mais está negativo.");
-                                    }
-                                }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                            >
+                            <Button onClick={handleCorrigirXP} className="bg-blue-600 hover:bg-blue-700 text-white font-bold">
                                 ZERAR SALDOS NEGATIVOS
                             </Button>
                         </div>
