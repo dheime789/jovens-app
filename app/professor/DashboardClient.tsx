@@ -12,10 +12,12 @@ import {
     Trash2,
     ShieldAlert,
     Pencil,
-    Settings // <--- NOVO ÍCONE
+    Settings,
+    AlertTriangle,   // <--- NOVO
+    MessageCircle    // <--- NOVO
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
@@ -26,6 +28,7 @@ interface Aluno {
     level: number;
     xp: number;
     squad?: { name: string } | null;
+    attendances?: { date: Date | string }[]; // <--- NOVO: Para saber a última data
 }
 
 interface Presenca {
@@ -49,11 +52,13 @@ interface DashboardProps {
     alunos: Aluno[];
     presencas: Presenca[];
     licoes: Licao[];
+    alunosAusentes: Aluno[]; // <--- NOVO: Recebe a lista de faltosos
     onSair: () => void;
     onExcluirPresenca: (id: string) => void;
     onExcluirLicao: (id: string) => void;
     onExcluirAluno: (id: string) => void;
-    onReformularTribos: () => void; // <--- NOVA AÇÃO
+    onReformularTribos: () => void;
+    onCorrigirXP: () => void; // <--- NOVO: Ação para zerar negativos
 }
 
 export default function DashboardClient({
@@ -62,16 +67,18 @@ export default function DashboardClient({
                                             alunos,
                                             presencas,
                                             licoes,
+                                            alunosAusentes, // <--- Pegando aqui
                                             onSair,
                                             onExcluirPresenca,
                                             onExcluirLicao,
                                             onExcluirAluno,
-                                            onReformularTribos // <--- RECEBENDO A AÇÃO
+                                            onReformularTribos,
+                                            onCorrigirXP    // <--- Pegando aqui
                                         }: DashboardProps) {
 
     const [abaAtiva, setAbaAtiva] = useState("visao-geral");
     const [termoBusca, setTermoBusca] = useState("");
-    const [loadingTribos, setLoadingTribos] = useState(false); // Estado para loading do botão perigoso
+    const [loadingTribos, setLoadingTribos] = useState(false);
 
     const alunosFiltrados = alunos.filter(a =>
         a.name.toLowerCase().includes(termoBusca.toLowerCase()) ||
@@ -137,7 +144,7 @@ export default function DashboardClient({
                         { id: "alunos", label: "Alunos" },
                         { id: "presenca", label: "Presença" },
                         { id: "licoes", label: "Lições" },
-                        { id: "config", label: "Config" } // <--- Nova Aba Mobile
+                        { id: "config", label: "Config" }
                     ].map((item) => (
                         <button
                             key={item.id}
@@ -156,6 +163,38 @@ export default function DashboardClient({
                 {/* 1. VISÃO GERAL */}
                 {abaAtiva === "visao-geral" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
+
+                        {/* --- NOVO: RADAR DE AUSÊNCIA --- */}
+                        {alunosAusentes && alunosAusentes.length > 0 && (
+                            <Card className="bg-red-950/20 border-red-900/50 mb-6">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-red-400 flex items-center gap-2 text-lg">
+                                        <AlertTriangle /> Radar de Ovelhas (Ausentes +15 dias)
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                                        {alunosAusentes.map(aluno => (
+                                            <div key={aluno.id} className="bg-slate-900 border border-slate-800 p-3 rounded-lg flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-bold text-white">{aluno.name}</p>
+                                                    <p className="text-xs text-slate-400">
+                                                        Última vez: {aluno.attendances && aluno.attendances.length > 0
+                                                        ? new Date(aluno.attendances[0].date).toLocaleDateString('pt-BR')
+                                                        : "Nunca veio"}
+                                                    </p>
+                                                </div>
+                                                <Button size="icon" className="h-8 w-8 bg-green-600 hover:bg-green-700 rounded-full">
+                                                    <MessageCircle size={16} />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {/* ------------------------------- */}
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <Card className="bg-slate-900 border-slate-800">
                                 <CardContent className="p-6 flex items-center gap-4">
@@ -317,6 +356,29 @@ export default function DashboardClient({
                                 className="bg-red-600 hover:bg-red-700 text-white font-bold h-12 px-6 shadow-lg shadow-red-900/20"
                             >
                                 {loadingTribos ? "Processando..." : "EXECUTAR REFORMULAÇÃO (JUDÁ x LEVI)"}
+                            </Button>
+                        </div>
+
+                        {/* --- NOVO: BOTÃO DE CORRIGIR XP NEGATIVO --- */}
+                        <div className="border border-blue-800/30 bg-blue-900/10 p-6 rounded-xl mt-6 relative overflow-hidden">
+                            <h3 className="text-blue-400 font-bold text-lg mb-2 flex items-center gap-2">
+                                💊 Enfermaria: Curar XP Negativo
+                            </h3>
+                            <p className="text-slate-400 text-sm mb-6 max-w-2xl">
+                                Se algum aluno ficou com saldo negativo (ex: -30 XP) por erro do sistema,
+                                este botão reseta o saldo deles para <strong>0 XP</strong>.
+                            </p>
+
+                            <Button
+                                onClick={async () => {
+                                    if(confirm("Confirma a correção dos saldos negativos?")) {
+                                        await onCorrigirXP();
+                                        alert("Saldos corrigidos! Ninguém mais está negativo.");
+                                    }
+                                }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                            >
+                                ZERAR SALDOS NEGATIVOS
                             </Button>
                         </div>
                     </div>

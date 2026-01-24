@@ -86,3 +86,23 @@ export async function reformularTribos() {
     revalidatePath("/aluno/escolher-tribo");
     return { success: true, message: "Tribos reformuladas: Apenas Judá e Levi permanecem!" };
 }
+// ... (mantenha a função reformularTribos que já existe)
+
+export async function corrigirXPNegativo() {
+    "use server";
+
+    // Atualiza TODOS os usuários que têm XP menor que 0
+    const resultado = await prisma.user.updateMany({
+        where: {
+            xp: { lt: 0 } // lt = Less Than (Menor que)
+        },
+        data: {
+            xp: 0
+        }
+    });
+
+    revalidatePath("/professor");
+    revalidatePath("/aluno");
+
+    return { success: true, count: resultado.count };
+}
