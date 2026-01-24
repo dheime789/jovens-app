@@ -14,22 +14,22 @@ model User {
   id            String    @id @default(cuid())
   name          String
   email         String?   @unique
-  phone         String?   // Para o líder ligar
-  password      String?   // Senha do aluno (Opcional para não quebrar quem já existe)
+  phone         String?
+  password      String?
   role          Role      @default(JOVEM)
 
-  // FOTO DE PERFIL (NOVO CAMPO)
-  avatar        String    @default("1") // Vamos usar números para os avatares (Ex: 1, 2, 3...)
+  // FOTO DE PERFIL
+  avatar        String    @default("1")
 
-  // Gamificação (A parte divertida)
+  // Gamificação
   xp            Int       @default(0)
   level         Int       @default(1)
-  currentStreak Int       @default(0) // A "Chama" 🔥 (Dias seguidos)
-  bestStreak    Int       @default(0) // Recorde pessoal
+  currentStreak Int       @default(0)
+  bestStreak    Int       @default(0)
   lastActivity  DateTime  @default(now())
 
   // Comunhão
-  squadId       String?   // A qual "Tribo" pertence
+  squadId       String?
   squad         Squad?    @relation(fields: [squadId], references: [id])
 
   // Histórico
@@ -37,45 +37,51 @@ model User {
   quizResults   QuizResult[]
   notifications Notification[]
 
+  // RELAÇÃO NOVA DO HISTÓRICO DE LEITURA
+  lessonHistory LessonHistory[] // <--- ADICIONE ISSO AQUI
+
   createdAt     DateTime  @default(now())
 }
 
 enum Role {
   JOVEM
-  LIDER     // Cuida de um esquadrão
-  PROFESSOR // Cria lições
-  ADMIN     // Pastor/Você
+  LIDER
+  PROFESSOR
+  ADMIN
 }
 
 // --- TRIBOS / ESQUADRÕES ---
 model Squad {
   id          String   @id @default(cuid())
-  name        String   // Ex: "Tribo de Judá", "Águias"
-  totalXp     Int      @default(0) // Pontuação da Tribo (Competição)
+  name        String
+  totalXp     Int      @default(0)
   members     User[]
 }
 
 // --- EBD E QUIZZES ---
 model Lesson {
   id          String   @id @default(cuid())
-  title       String   // Ex: "A Importância da Oração"
-  content     String   // O texto da lição
-  date        DateTime // Data da aula
+  title       String
+  content     String
+  date        DateTime
   isPublished Boolean  @default(false)
 
   questions   Question[]
+
+  // RELAÇÃO NOVA DO HISTÓRICO DE LEITURA
+  lessonHistory LessonHistory[] // <--- ADICIONE ISSO AQUI TAMBÉM
 }
 
 model Question {
   id          String   @id @default(cuid())
   lessonId    String
-  text        String   // "Quem derrubou as muralhas?"
+  text        String
   optionA     String
   optionB     String
   optionC     String
   optionD     String
-  correctOption String // "A", "B", "C" ou "D"
-  xpReward    Int      @default(50) // Vale pontos!
+  correctOption String
+  xpReward    Int      @default(50)
 
   lesson      Lesson   @relation(fields: [lessonId], references: [id])
   results     QuizResult[]
@@ -114,10 +120,23 @@ enum EventType {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  title     String   // "Sua chama apagou! 😢"
+  title     String
   message   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
+}
+
+// --- HISTÓRICO DE LEITURA (NOVA TABELA) ---
+model LessonHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  date      DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId]) // Garante que só lê 1 vez
 }
