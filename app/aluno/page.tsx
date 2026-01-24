@@ -28,7 +28,13 @@ export default async function AlunoDashboard() {
     });
 
     if (!aluno) redirect("/login");
+
+    // 1. Verifica Tribo
     if (!aluno.squadId) redirect("/aluno/escolher-tribo");
+
+    // 2. Verifica Avatar (PASSO 3 ATIVADO AQUI)
+    // Se o avatar for "1" (padrão), manda escolher um emoji
+    if (aluno.avatar === "1") redirect("/aluno/escolher-avatar");
 
     // --- LÓGICA DE TRAVA DA PRESENÇA ---
     const inicioDoDia = new Date();
@@ -71,6 +77,7 @@ export default async function AlunoDashboard() {
                 <div className="flex justify-between items-center max-w-md mx-auto">
                     <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-full bg-slate-800 border-2 border-violet-500 flex items-center justify-center text-2xl overflow-hidden">
+                            {/* Agora vai mostrar o Emoji escolhido! */}
                             {aluno.avatar}
                         </div>
                         <div>
@@ -135,7 +142,6 @@ export default async function AlunoDashboard() {
                             </div>
                         ) : (
                             // SE NÃO MARCOU: BOTÃO GRANDE PARA MARCAR
-                            // --- CORREÇÃO AQUI ---
                             <form
                                 action={async (formData) => {
                                     "use server"

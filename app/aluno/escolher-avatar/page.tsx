@@ -2,9 +2,17 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
-const AVATARES = ["🦁", "🦅", "🐻", "🐯", "🐺", "🦊", "🐲", "🦍", "🦉", "🦄", "⚡", "🔥", "🛡️", "⚔️", "💎", "🚀"];
+// Lista Expandida de Avatares (Mais opções para eles)
+const AVATARES = [
+    "🦁", "🐯", "🐺", "🐻", "🐨", "🐼",
+    "🐸", "🦊", "🐲", "🦖", "🐙", "🦈",
+    "🦅", "🦉", "🦋", "🐝", "🐞", "🐜",
+    "🦍", "🦧", "🦣", "🐘", "🦏", "🦛",
+    "👮", "🕵️", "💂", "🥷", "🦸", "🦹",
+    "🧙", "🧝", "🧛", "🧟", "🧞", "🧜",
+    "🤖", "👾", "👽", "👻", "💀", "💩"
+];
 
 export default async function EscolherAvatarPage() {
 
@@ -16,25 +24,38 @@ export default async function EscolherAvatarPage() {
 
         await prisma.user.update({
             where: { id: userId },
-            data: { avatar: emoji } // Salva o emoji direto no banco
+            data: { avatar: emoji }
         });
 
-        redirect("/aluno"); // Volta pro painel
+        redirect("/aluno");
     }
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-6 flex flex-col items-center justify-center">
-            <h1 className="text-2xl font-bold mb-2 text-center">Quem é você na guerra?</h1>
-            <p className="text-slate-400 mb-8 text-center">Escolha seu avatar de batalha</p>
+            <div className="max-w-2xl w-full text-center space-y-6">
 
-            <div className="grid grid-cols-4 gap-4 max-w-md">
-                {AVATARES.map((emoji) => (
-                    <form key={emoji} action={async () => { "use server"; await salvarAvatar(emoji); }}>
-                        <Button variant="outline" className="h-16 w-16 text-3xl bg-slate-900 border-slate-800 hover:bg-violet-900/50 hover:border-violet-500 hover:scale-110 transition-all">
-                            {emoji}
-                        </Button>
-                    </form>
-                ))}
+                <div>
+                    <h1 className="text-3xl font-bold mb-2 text-white">Quem é você na guerra? ⚔️</h1>
+                    <p className="text-slate-400">Escolha o avatar que vai aparecer no Ranking.</p>
+                </div>
+
+                {/* Grade Responsiva (4 por linha no celular, 6 ou 8 no PC) */}
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl">
+                    {AVATARES.map((emoji) => (
+                        <form key={emoji} action={async () => { "use server"; await salvarAvatar(emoji); }}>
+                            <Button
+                                variant="ghost"
+                                className="w-full h-14 text-3xl hover:bg-slate-800 hover:scale-125 transition-transform duration-200"
+                            >
+                                {emoji}
+                            </Button>
+                        </form>
+                    ))}
+                </div>
+
+                <p className="text-xs text-slate-500">
+                    Clique no emoji para salvar e entrar.
+                </p>
             </div>
         </div>
     );
