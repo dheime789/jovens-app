@@ -36,3 +36,53 @@ export async function excluirLicao(id: string) {
     revalidatePath("/professor");
     revalidatePath("/aluno");
 }
+// Adicione isso no final do arquivo app/professor/actions.ts
+
+export async function reformularTribos() {
+    "use server";
+
+    // 1. Lista das tribos que VÃO FICAR (e seus emojis)
+    const tribosOficiais = [
+        { name: "Tribo de Judá 🦁" },
+        { name: "Tribo de Levi 🛡️" }
+    ];
+
+    // 2. Garante que Judá e Levi existem (cria se não existirem)
+    for (const t of tribosOficiais) {
+        const existe = await prisma.squad.findFirst({ where: { name: t.name } });
+        if (!existe) {
+            await prisma.squad.create({ data: { name: t.name, totalXp: 0 } });
+        }
+    }
+
+    // 3. Busca todas as tribos do banco
+    const todasTribos = await prisma.squad.findMany();
+
+    // 4. Filtra as tribos que DEVEM SER APAGADAS (quem não é Judá nem Levi)
+    const tribosParaExcluir = todasTribos.filter(t =>
+        t.name !== "Tribo de Judá 🦁" &&
+        t.name !== "Tribo de Levi 🛡️"
+    );
+
+    // 5. O PROCESSO DE SEGURANÇA (Cuida dos Órfãos)
+    for (const tribo of tribosParaExcluir) {
+        // A. Acha os alunos dessa tribo
+        const alunosOrfaos = await prisma.user.findMany({ where: { squadId: tribo.id } });
+
+        // B. Remove a tribo deles (deixa null).
+        // Assim, no próximo login, eles serão forçados a escolher entre Judá e Levi.
+        if (alunosOrfaos.length > 0) {
+            await prisma.user.updateMany({
+                where: { squadId: tribo.id },
+                data: { squadId: null }
+            });
+        }
+
+        // C. Agora que a tribo está vazia, pode apagar sem medo
+        await prisma.squad.delete({ where: { id: tribo.id } });
+    }
+
+    revalidatePath("/aluno/ranking");
+    revalidatePath("/aluno/escolher-tribo");
+    return { success: true, message: "Tribos reformuladas: Apenas Judá e Levi permanecem!" };
+}

@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
-export async function marcarPresenca() {
+// CORREÇÃO AQUI: Adicionei (formData: FormData) para o erro sumir
+export async function marcarPresenca(formData: FormData) {
     const c = await cookies();
     const userId = c.get("aluno_logado")?.value;
 

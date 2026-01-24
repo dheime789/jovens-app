@@ -11,7 +11,8 @@ import {
     Search,
     Trash2,
     ShieldAlert,
-    Pencil
+    Pencil,
+    Settings // <--- NOVO ÍCONE
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,6 +53,7 @@ interface DashboardProps {
     onExcluirPresenca: (id: string) => void;
     onExcluirLicao: (id: string) => void;
     onExcluirAluno: (id: string) => void;
+    onReformularTribos: () => void; // <--- NOVA AÇÃO
 }
 
 export default function DashboardClient({
@@ -63,16 +65,27 @@ export default function DashboardClient({
                                             onSair,
                                             onExcluirPresenca,
                                             onExcluirLicao,
-                                            onExcluirAluno
+                                            onExcluirAluno,
+                                            onReformularTribos // <--- RECEBENDO A AÇÃO
                                         }: DashboardProps) {
 
     const [abaAtiva, setAbaAtiva] = useState("visao-geral");
     const [termoBusca, setTermoBusca] = useState("");
+    const [loadingTribos, setLoadingTribos] = useState(false); // Estado para loading do botão perigoso
 
     const alunosFiltrados = alunos.filter(a =>
         a.name.toLowerCase().includes(termoBusca.toLowerCase()) ||
         (a.squad?.name || "").toLowerCase().includes(termoBusca.toLowerCase())
     );
+
+    const handleReformular = async () => {
+        if (confirm("⚠️ PERIGO: Tem certeza? \n\nIsso apagará todas as tribos extras e manterá apenas Judá e Levi. Alunos de outras tribos terão que escolher novamente.")) {
+            setLoadingTribos(true);
+            await onReformularTribos();
+            setLoadingTribos(false);
+            alert("Sistema reformulado com sucesso!");
+        }
+    };
 
     return (
         <div className="flex min-h-screen bg-slate-950 text-white">
@@ -98,6 +111,13 @@ export default function DashboardClient({
                     <Button variant={abaAtiva === "licoes" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "licoes" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("licoes")}>
                         <BookOpen size={20} className="mr-3" /> Lições
                     </Button>
+
+                    <div className="pt-4 mt-4 border-t border-slate-800">
+                        <p className="px-4 text-xs text-slate-500 font-bold mb-2 uppercase">Sistema</p>
+                        <Button variant={abaAtiva === "config" ? "secondary" : "ghost"} className={`w-full justify-start ${abaAtiva === "config" ? "bg-slate-800 text-white" : "text-slate-400"}`} onClick={() => setAbaAtiva("config")}>
+                            <Settings size={20} className="mr-3" /> Configurações
+                        </Button>
+                    </div>
                 </nav>
 
                 <div className="p-4 border-t border-slate-800">
@@ -116,7 +136,8 @@ export default function DashboardClient({
                         { id: "visao-geral", label: "Geral" },
                         { id: "alunos", label: "Alunos" },
                         { id: "presenca", label: "Presença" },
-                        { id: "licoes", label: "Lições" }
+                        { id: "licoes", label: "Lições" },
+                        { id: "config", label: "Config" } // <--- Nova Aba Mobile
                     ].map((item) => (
                         <button
                             key={item.id}
@@ -162,7 +183,7 @@ export default function DashboardClient({
                     </div>
                 )}
 
-                {/* 2. ALUNOS (COMPLETO E COM BUSCA) */}
+                {/* 2. ALUNOS */}
                 {abaAtiva === "alunos" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         <div className="flex justify-between items-center">
@@ -218,7 +239,7 @@ export default function DashboardClient({
                     </div>
                 )}
 
-                {/* 3. PRESENÇA (COMPLETO) */}
+                {/* 3. PRESENÇA */}
                 {abaAtiva === "presenca" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         <h2 className="text-2xl font-bold text-white">Registro de Presença</h2>
@@ -244,7 +265,7 @@ export default function DashboardClient({
                     </div>
                 )}
 
-                {/* 4. LIÇÕES (COM BOTÃO EDITAR CINZA ESCURO CORRIGIDO) */}
+                {/* 4. LIÇÕES */}
                 {abaAtiva === "licoes" && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         <div className="flex justify-between items-center">
@@ -258,17 +279,45 @@ export default function DashboardClient({
                                         <div> <h3 className="font-bold text-white text-lg">{licao.title}</h3> <p className="text-slate-400 text-sm"> {new Date(licao.date).toLocaleDateString('pt-BR')} • {Array.isArray(licao.questions) ? licao.questions.length : 0} Perguntas </p> </div>
                                         <div className="flex gap-2 items-center">
                                             <span className={licao.isPublished ? "px-2 py-1 rounded text-xs font-bold bg-green-500/10 text-green-400" : "px-2 py-1 rounded text-xs font-bold bg-yellow-500/10 text-yellow-400"}> {licao.isPublished ? "Publicado" : "Rascunho"} </span>
-
-                                            {/* Botão de Editar VISÍVEL (fundo cinza) */}
                                             <Link href={`/professor/editar-licao/${licao.id}`}>
                                                 <Button size="sm" className="bg-slate-800 text-white border border-slate-700 hover:bg-slate-700"> <Pencil size={14} className="mr-2" /> Editar </Button>
                                             </Link>
-
                                             <Button variant="destructive" size="sm" className="bg-red-900/20 text-red-500 hover:bg-red-900/40 border border-red-900/50" onClick={() => onExcluirLicao(licao.id)}> <Trash2 size={14} /> </Button>
                                         </div>
                                     </CardContent>
                                 </Card>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 5. CONFIGURAÇÕES (NOVA ABA) */}
+                {abaAtiva === "config" && (
+                    <div className="space-y-6 animate-in fade-in duration-500">
+                        <h2 className="text-2xl font-bold text-white">Configurações do Sistema</h2>
+
+                        <div className="border border-red-800/30 bg-red-900/10 p-6 rounded-xl relative overflow-hidden">
+                            {/* Efeito de alerta */}
+                            <div className="absolute top-0 right-0 p-6 opacity-5">
+                                <ShieldAlert size={120} />
+                            </div>
+
+                            <h3 className="text-red-400 font-bold text-lg mb-2 flex items-center gap-2">
+                                <ShieldAlert size={20}/> Zona de Perigo: Reformulação
+                            </h3>
+                            <p className="text-slate-400 text-sm mb-6 max-w-2xl leading-relaxed">
+                                Esta ação irá <strong>excluir todas as tribos</strong> (Simeão, Naftali, Rúben, Benjamim, etc), mantendo apenas <strong>Judá 🦁</strong> e <strong>Levi 🛡️</strong>.
+                                <br/><br/>
+                                Os alunos que pertenciam às tribos excluídas ficarão "sem tribo" e serão forçados a escolher um novo lado no próximo login.
+                            </p>
+
+                            <Button
+                                onClick={handleReformular}
+                                disabled={loadingTribos}
+                                className="bg-red-600 hover:bg-red-700 text-white font-bold h-12 px-6 shadow-lg shadow-red-900/20"
+                            >
+                                {loadingTribos ? "Processando..." : "EXECUTAR REFORMULAÇÃO (JUDÁ x LEVI)"}
+                            </Button>
                         </div>
                     </div>
                 )}

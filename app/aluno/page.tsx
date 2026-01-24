@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
-import { marcarPresenca } from "./actions"; // <--- Importando a ação de segurança
+import { marcarPresenca } from "./actions";
 
 export default async function AlunoDashboard() {
     const cookieStore = await cookies();
@@ -29,9 +29,6 @@ export default async function AlunoDashboard() {
 
     if (!aluno) redirect("/login");
     if (!aluno.squadId) redirect("/aluno/escolher-tribo");
-
-    // Se ainda não tiver avatar definido, usa "1" como padrão ou redireciona
-    // if (aluno.avatar === "1") redirect("/aluno/escolher-avatar");
 
     // --- LÓGICA DE TRAVA DA PRESENÇA ---
     const inicioDoDia = new Date();
@@ -74,7 +71,6 @@ export default async function AlunoDashboard() {
                 <div className="flex justify-between items-center max-w-md mx-auto">
                     <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-full bg-slate-800 border-2 border-violet-500 flex items-center justify-center text-2xl overflow-hidden">
-                            {/* Aqui poderia ser uma imagem, mas mantive o texto por enquanto */}
                             {aluno.avatar}
                         </div>
                         <div>
@@ -117,8 +113,7 @@ export default async function AlunoDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* --- ÁREA DE CHECK-IN INTELIGENTE (NOVIDADE) --- */}
-                {/* Substituiu o botão simples de presença por este cartão inteligente */}
+                {/* --- ÁREA DE CHECK-IN INTELIGENTE --- */}
                 <Card className="border-slate-800 bg-slate-900 overflow-hidden relative">
                     {!presencaHoje && (
                         <div className="absolute top-0 right-0 w-20 h-20 bg-pink-600/20 blur-2xl rounded-full pointer-events-none"></div>
@@ -140,7 +135,14 @@ export default async function AlunoDashboard() {
                             </div>
                         ) : (
                             // SE NÃO MARCOU: BOTÃO GRANDE PARA MARCAR
-                            <form action={marcarPresenca} className="p-4">
+                            // --- CORREÇÃO AQUI ---
+                            <form
+                                action={async (formData) => {
+                                    "use server"
+                                    await marcarPresenca(formData)
+                                }}
+                                className="p-4"
+                            >
                                 <div className="flex items-center gap-2 mb-3">
                                     <MapPin className="text-pink-500" size={18} />
                                     <span className="font-bold text-white">Está na igreja?</span>
@@ -153,7 +155,7 @@ export default async function AlunoDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* MENU RÁPIDO (Agora só com Lições e Quiz, pois Presença já está em destaque acima) */}
+                {/* MENU RÁPIDO */}
                 <div className="grid grid-cols-2 gap-3">
                     <Link href="/aluno/licoes">
                         <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:border-blue-500 hover:text-blue-400">

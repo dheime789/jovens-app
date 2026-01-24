@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import DashboardClient from "./DashboardClient";
+import { reformularTribos } from "./actions"; // <--- 1. IMPORTAÇÃO NOVA
 
 export default async function ProfessorPage() {
 
@@ -74,7 +75,6 @@ export default async function ProfessorPage() {
         revalidatePath("/professor");
     }
 
-    // --- ESSA É A FUNÇÃO ATUALIZADA E POTENTE ---
     async function excluirLicao(id: string) {
         "use server";
 
@@ -146,6 +146,7 @@ export default async function ProfessorPage() {
             onExcluirPresenca={excluirPresenca}
             onExcluirLicao={excluirLicao}
             onExcluirAluno={excluirAluno}
+            onReformularTribos={reformularTribos} // <--- 2. CONEXÃO FEITA AQUI
         />
     );
 }
