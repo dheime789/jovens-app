@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { marcarPresenca } from "./actions";
+import { VersiculoDoDia } from "@/components/VersiculoDoDia"; // <--- IMPORTAÇÃO NOVA
 
 export default async function AlunoDashboard() {
     const cookieStore = await cookies();
@@ -52,8 +53,6 @@ export default async function AlunoDashboard() {
     });
 
     // --- CORREÇÃO VISUAL DO FOGUINHO 🔥 ---
-    // Se o aluno marcou hoje (presencaHoje existe), mas o banco diz 0 dias (bug anterior),
-    // o sistema força visualmente para mostrar 1 dia.
     const diasSeguidos = (presencaHoje && aluno.currentStreak === 0) ? 1 : aluno.currentStreak;
 
     // Histórico na tela inicial
@@ -81,7 +80,7 @@ export default async function AlunoDashboard() {
                 <div className="flex justify-between items-center max-w-md mx-auto">
                     <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-full bg-slate-800 border-2 border-violet-500 flex items-center justify-center text-2xl overflow-hidden">
-                            {/* Agora vai mostrar o Emoji escolhido! */}
+                            {/* Mostra o Avatar Escolhido */}
                             {aluno.avatar}
                         </div>
                         <div>
@@ -101,6 +100,9 @@ export default async function AlunoDashboard() {
 
             <div className="max-w-md mx-auto p-6 space-y-6">
 
+                {/* --- VERSÍCULO DO DIA (NOVIDADE) --- */}
+                <VersiculoDoDia />
+
                 {/* CARTÃO DE NÍVEL */}
                 <Card className="bg-slate-900 border-slate-800 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -109,7 +111,6 @@ export default async function AlunoDashboard() {
                     <CardHeader className="pb-2">
                         <CardTitle className="text-slate-400 text-sm font-medium flex justify-between">
                             <span>Seu Progresso</span>
-                            {/* AQUI ESTÁ A VARIÁVEL CORRIGIDA (diasSeguidos) */}
                             <span className="text-yellow-500 flex items-center gap-1"><Flame size={14}/> {diasSeguidos} dias seguidos</span>
                         </CardTitle>
                     </CardHeader>
@@ -132,7 +133,7 @@ export default async function AlunoDashboard() {
                     )}
                     <CardContent className="p-0">
                         {presencaHoje ? (
-                            // SE JÁ MARCOU: MOSTRA VERDE E BLOQUEADO
+                            // SE JÁ MARCOU
                             <div className="flex items-center justify-between p-4 bg-green-950/20 border-l-4 border-green-500">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-green-500/20 p-2 rounded-full text-green-500">
@@ -146,7 +147,7 @@ export default async function AlunoDashboard() {
                                 <span className="font-bold text-slate-500 text-sm">Feito ✓</span>
                             </div>
                         ) : (
-                            // SE NÃO MARCOU: BOTÃO GRANDE PARA MARCAR
+                            // SE NÃO MARCOU
                             <form
                                 action={async (formData) => {
                                     "use server"
@@ -159,7 +160,7 @@ export default async function AlunoDashboard() {
                                     <span className="font-bold text-white">Está na igreja?</span>
                                 </div>
                                 <Button className="w-full bg-pink-600 hover:bg-pink-700 font-bold h-12 shadow-lg shadow-pink-900/20 animate-pulse">
-                                    MARCAR PRESENÇA (+20 XP)
+                                    MARCAR PRESENÇA (+50 XP)
                                 </Button>
                             </form>
                         )}
