@@ -12,21 +12,15 @@ export async function marcarPresenca(formData: FormData) {
         return { success: false, message: "Erro: Usuário não identificado." };
     }
 
-    // 1. Define o intervalo de tempo de "HOJE"
     const inicioDoDia = new Date();
     inicioDoDia.setHours(0, 0, 0, 0);
-
     const fimDoDia = new Date();
     fimDoDia.setHours(23, 59, 59, 999);
 
-    // 2. VERIFICAÇÃO DE SEGURANÇA: Já marcou hoje?
     const jaMarcou = await prisma.attendance.findFirst({
         where: {
             userId: userId,
-            date: {
-                gte: inicioDoDia,
-                lte: fimDoDia
-            }
+            date: { gte: inicioDoDia, lte: fimDoDia }
         }
     });
 
@@ -34,18 +28,11 @@ export async function marcarPresenca(formData: FormData) {
         return { success: false, message: "Você já marcou presença hoje!" };
     }
 
-    // --- CORREÇÃO DO FOGUINHO (STREAK) ---
-
-    // Busca os dados atuais do aluno para ver a última atividade
-    const aluno = await prisma.user.findUnique({
-        where: { id: userId }
-    });
-
+    // --- LÓGICA DO STREAK (DIAS SEGUIDOS) ---
+    const aluno = await prisma.user.findUnique({ where: { id: userId } });
     if (!aluno) return { success: false };
 
-    let novoStreak = 1; // O padrão é começar com 1 dia
-
-    // Lógica para ver se é dia consecutivo
+    let novoStreak = 1;
     const ultimaAtividade = new Date(aluno.lastActivity);
     ultimaAtividade.setHours(0,0,0,0);
 
@@ -53,17 +40,16 @@ export async function marcarPresenca(formData: FormData) {
     ontem.setDate(ontem.getDate() - 1);
     ontem.setHours(0,0,0,0);
 
-    // Se a última atividade foi ONTEM, então aumenta a chama! 🔥
+    // Se a última atividade foi ONTEM, aumenta +1
     if (ultimaAtividade.getTime() === ontem.getTime()) {
         novoStreak = aluno.currentStreak + 1;
     }
-    // Se a última atividade foi HOJE (algum bug), mantém o atual
+    // Se foi hoje (bug), mantém
     else if (ultimaAtividade.getTime() === inicioDoDia.getTime()) {
         novoStreak = aluno.currentStreak;
     }
-    // Se foi antes de ontem, quebrou a ofensiva, volta para 1 (já definido no let)
+    // Se foi antes, reseta pra 1 (já está no let)
 
-    // 3. Cria a presença no histórico
     await prisma.attendance.create({
         data: {
             userId: userId,
@@ -72,16 +58,16 @@ export async function marcarPresenca(formData: FormData) {
         }
     });
 
-    // 4. Atualiza XP + STREAK + DATA DA ÚLTIMA ATIVIDADE
+    // --- CORREÇÃO DE VALOR: AGORA É 50 XP (Igual ao visual e exclusão) ---
     await prisma.user.update({
         where: { id: userId },
         data: {
-            xp: { increment: 20 },
+            xp: { increment: 50 }, // <--- MUDADO DE 20 PARA 50
             currentStreak: novoStreak,
-            lastActivity: new Date() // <--- Atualiza a data para "agora"
+            lastActivity: new Date()
         }
     });
 
     revalidatePath("/aluno");
-    return { success: true, message: "Presença confirmada! +20 XP" };
+    return { success: true, message: "Presença confirmada! +50 XP" };
 }

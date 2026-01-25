@@ -21,9 +21,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
-// --- IMPORTAÇÃO DIRETA (A MÁGICA ACONTECE AQUI) ---
-// Ao importar direto, garantimos que a função existe e funciona
-import { reformularTribos, corrigirXPNegativo } from "./actions";
+// --- IMPORTAÇÃO DIRETA ---
+// Agora importamos a função "sincronizarTudo" em vez da antiga "corrigirXP"
+import { reformularTribos, sincronizarTudo } from "./actions";
 
 // --- TIPOS DE DADOS ---
 interface Aluno {
@@ -61,7 +61,6 @@ interface DashboardProps {
     onExcluirPresenca: (id: string) => void;
     onExcluirLicao: (id: string) => void;
     onExcluirAluno: (id: string) => void;
-    // Removemos onReformularTribos e onCorrigirXP daqui pois importamos direto lá em cima!
 }
 
 export default function DashboardClient({
@@ -86,14 +85,14 @@ export default function DashboardClient({
         (a.squad?.name || "").toLowerCase().includes(termoBusca.toLowerCase())
     );
 
-    // FUNÇÃO REFORMULAR (Atualizada)
+    // FUNÇÃO REFORMULAR TRIBOS
     const handleReformular = async () => {
         if (confirm("⚠️ PERIGO: Tem certeza? \n\nIsso apagará todas as tribos extras e manterá apenas Judá e Levi.")) {
             setLoadingTribos(true);
             try {
-                await reformularTribos(); // Chama direto a função importada
+                await reformularTribos();
                 alert("Sistema reformulado com sucesso!");
-                window.location.reload(); // Força atualização da tela
+                window.location.reload();
             } catch (e) {
                 alert("Erro ao reformular.");
             }
@@ -101,16 +100,18 @@ export default function DashboardClient({
         }
     };
 
-    // FUNÇÃO CORRIGIR XP (Atualizada)
-    const handleCorrigirXP = async () => {
-        if(confirm("Confirma a correção dos saldos negativos?")) {
+    // FUNÇÃO SINCRONIZAR TUDO (NOVA)
+    const handleSincronizar = async () => {
+        if(confirm("Isso vai recalcular o XP e os Dias Seguidos de TODOS os alunos baseados no histórico de presença.\n\nÚtil para corrigir erros de cálculo ou bugs.\n\nDeseja continuar?")) {
+            setLoadingTribos(true);
             try {
-                const resultado = await corrigirXPNegativo(); // Chama direto a função importada
-                alert(`Sucesso! ${resultado.count || 0} alunos foram corrigidos.`);
-                window.location.reload(); // Força atualização da tela para sumir o número negativo NA HORA
+                const res = await sincronizarTudo(); // Chama a função poderosa
+                alert(`Sincronização concluída!\n${res.count} alunos tiveram seus dados corrigidos.`);
+                window.location.reload();
             } catch (e) {
-                alert("Erro ao corrigir XP.");
+                alert("Erro ao sincronizar.");
             }
+            setLoadingTribos(false);
         }
     }
 
@@ -157,7 +158,7 @@ export default function DashboardClient({
             {/* --- ÁREA PRINCIPAL --- */}
             <main className="flex-1 bg-slate-950 p-6 overflow-auto">
 
-                {/* MENU MOBILE CORRIGIDO */}
+                {/* MENU MOBILE */}
                 <div className="md:hidden flex gap-2 mb-6 overflow-x-auto pb-2">
                     {[
                         { id: "visao-geral", label: "Geral" },
@@ -233,10 +234,6 @@ export default function DashboardClient({
                                     <div> <p className="text-slate-400 text-sm">Lições Publicadas</p> <h3 className="text-2xl font-bold text-white">{licoes.length}</h3> </div>
                                 </CardContent>
                             </Card>
-                        </div>
-                        <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
-                            <h3 className="text-lg font-bold text-white mb-2">Bem-vindo, Líder! 🛡️</h3>
-                            <p className="text-slate-400">Use o menu lateral para gerenciar seus alunos, marcar presenças e criar novas lições.</p>
                         </div>
                     </div>
                 )}
@@ -365,16 +362,23 @@ export default function DashboardClient({
                             </Button>
                         </div>
 
-                        {/* --- BOTÃO DE CORRIGIR XP --- */}
+                        {/* --- BOTÃO DE SINCRONIZAÇÃO GERAL --- */}
                         <div className="border border-blue-800/30 bg-blue-900/10 p-6 rounded-xl mt-6 relative overflow-hidden">
                             <h3 className="text-blue-400 font-bold text-lg mb-2 flex items-center gap-2">
-                                💊 Enfermaria: Curar XP Negativo
+                                🔄 Sincronização Geral
                             </h3>
                             <p className="text-slate-400 text-sm mb-6 max-w-2xl">
-                                Se algum aluno ficou com saldo negativo, clique aqui para resetar para <strong>0 XP</strong>.
+                                Detectou algum erro? Saldo negativo? Dias seguidos não contando?
+                                <br/>
+                                Este botão <strong>recalcula tudo do zero</strong> para todos os alunos com base nas presenças confirmadas.
                             </p>
-                            <Button onClick={handleCorrigirXP} className="bg-blue-600 hover:bg-blue-700 text-white font-bold">
-                                ZERAR SALDOS NEGATIVOS
+
+                            <Button
+                                onClick={handleSincronizar}
+                                disabled={loadingTribos}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 px-6"
+                            >
+                                {loadingTribos ? "Calculando..." : "SINCRONIZAR E CORRIGIR DADOS"}
                             </Button>
                         </div>
                     </div>
