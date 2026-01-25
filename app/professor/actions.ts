@@ -3,52 +3,48 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// --- FUNÇÃO DE EXCLUIR LIÇÃO ---
+// --- FUNÇÃO DE EXCLUIR LIÇÃO (CORRIGIDA PARA LIMPAR CACHE) ---
 export async function excluirLicao(id: string) {
     try { await prisma.lessonHistory.deleteMany({ where: { lessonId: id } }); } catch (e) {}
+
     const perguntas = await prisma.question.findMany({ where: { lessonId: id }, select: { id: true } });
     const idsPerguntas = perguntas.map(p => p.id);
+
     if (idsPerguntas.length > 0) {
         await prisma.quizResult.deleteMany({ where: { questionId: { in: idsPerguntas } } });
     }
+
     await prisma.question.deleteMany({ where: { lessonId: id } });
+
+    // Apaga a lição
     await prisma.lesson.delete({ where: { id: id } });
+
+    // --- AQUI ESTÁ A MÁGICA ---
+    // Avisa todas as telas que a lista mudou
     revalidatePath("/professor");
     revalidatePath("/aluno");
+    revalidatePath("/aluno/licoes"); // <--- ESSA LINHA RESOLVE O SEU PROBLEMA
 }
 
-// --- FUNÇÃO DE EXCLUIR ALUNO (COM DESCONTO NA TRIBO) ---
+// --- FUNÇÃO DE EXCLUIR ALUNO ---
 export async function excluirAluno(id: string) {
-    "use server";
-
-    // 1. Antes de apagar, vê quanto XP ele tem e de qual tribo ele é
-    const aluno = await prisma.user.findUnique({
-        where: { id }
-    });
-
-    // 2. Se ele tem tribo e XP, tira esse XP do total da tribo
+    const aluno = await prisma.user.findUnique({ where: { id } });
     if (aluno && aluno.squadId && aluno.xp > 0) {
         try {
             await prisma.squad.update({
                 where: { id: aluno.squadId },
-                data: { totalXp: { decrement: aluno.xp } } // Tira os pontos dele do placar
+                data: { totalXp: { decrement: aluno.xp } }
             });
-        } catch (e) {
-            // Se der erro (ex: tribo não existe mais), segue o baile
-        }
+        } catch (e) {}
     }
-
-    // 3. Agora sim, apaga tudo do aluno
     await prisma.quizResult.deleteMany({ where: { userId: id } });
     await prisma.attendance.deleteMany({ where: { userId: id } });
     await prisma.notification.deleteMany({ where: { userId: id } });
     try { await prisma.lessonHistory.deleteMany({ where: { userId: id } }); } catch(e) {}
-
-    // 4. Tchau, aluno!
     await prisma.user.delete({ where: { id } });
 
     revalidatePath("/professor");
-    revalidatePath("/aluno/ranking"); // Atualiza o ranking também
+    revalidatePath("/aluno/ranking");
 }
 
 // --- FUNÇÃO DE REFORMULAR TRIBOS ---
@@ -72,13 +68,9 @@ export async function reformularTribos() {
     return { success: true, message: "Tribos reformuladas!" };
 }
 
-// --- FUNÇÃO: ZERAR PLACAR DAS TRIBOS (NOVA) ---
+// --- FUNÇÃO: ZERAR PLACAR DAS TRIBOS ---
 export async function zerarPlacarTribos() {
-    // Coloca o XP de TODAS as tribos em 0
-    await prisma.squad.updateMany({
-        data: { totalXp: 0 }
-    });
-
+    await prisma.squad.updateMany({ data: { totalXp: 0 } });
     revalidatePath("/aluno/ranking");
     return { success: true };
 }
