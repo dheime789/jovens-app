@@ -3,6 +3,69 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+// --- NOVA FUNÇÃO: ATUALIZAR LIÇÃO E PERGUNTAS ---
+// (Essa é a função que faltava para a tela de edição funcionar)
+export async function atualizarLicao(formData: FormData) {
+    "use server";
+
+    const id = formData.get("id") as string;
+    const title = formData.get("title") as string;
+    const videoUrl = formData.get("videoUrl") as string;
+    const description = formData.get("description") as string;
+    const isPublished = formData.get("isPublished") === "on";
+
+    // Recupera as perguntas do formulário (vêm como string JSON)
+    const questionsJson = formData.get("questions") as string;
+    const questions = JSON.parse(questionsJson);
+
+    // 1. Atualiza os dados básicos da Lição
+    await prisma.lesson.update({
+        where: { id },
+        data: {
+            title,
+            videoUrl,
+            description,
+            isPublished
+        }
+    });
+
+    // 2. Atualiza ou Cria as Perguntas
+    for (const q of questions) {
+        // Verifica se é uma pergunta existente (tem ID longo do banco)
+        if (q.id && q.id.length > 10 && !q.id.startsWith("temp-")) {
+            // Se tem ID, atualiza a existente
+            await prisma.question.update({
+                where: { id: q.id },
+                data: {
+                    title: q.title,
+                    optionA: q.optionA,
+                    optionB: q.optionB,
+                    optionC: q.optionC,
+                    optionD: q.optionD,
+                    correctOption: q.correctOption
+                }
+            });
+        } else {
+            // Se não tem ID (é nova), cria
+            await prisma.question.create({
+                data: {
+                    lessonId: id,
+                    title: q.title,
+                    optionA: q.optionA,
+                    optionB: q.optionB,
+                    optionC: q.optionC,
+                    optionD: q.optionD,
+                    correctOption: q.correctOption
+                }
+            });
+        }
+    }
+
+    revalidatePath("/professor");
+    revalidatePath("/aluno/licoes");
+    return { success: true };
+}
+
 // --- FUNÇÃO DE EXCLUIR LIÇÃO ---
 export async function excluirLicao(id: string) {
     try { await prisma.lessonHistory.deleteMany({ where: { lessonId: id } }); } catch (e) {}
@@ -40,26 +103,20 @@ export async function excluirAluno(id: string) {
 }
 
 // --- FUNÇÃO DE EXCLUIR PRESENÇA (INTELIGENTE) ---
-// Essa é a função que resolve o seu problema do Ensaio!
 export async function excluirPresenca(id: string) {
-    // 1. Acha a presença antes de apagar para saber quem é o aluno
     const presenca = await prisma.attendance.findUnique({
         where: { id },
         include: { user: true }
     });
 
     if (presenca) {
-        // 2. Define quantos pontos vamos tirar (50 se for EBD, 20 se for Culto)
-        // Se você usou apenas a função padrão, provavelmente é 50.
         const pontosParaTirar = presenca.type === 'EBD' ? 50 : 20;
 
-        // 3. Tira os pontos do Aluno
         await prisma.user.update({
             where: { id: presenca.userId },
             data: { xp: { decrement: pontosParaTirar } }
         });
 
-        // 4. Tira os pontos da Tribo (se ele tiver tribo)
         if (presenca.user.squadId) {
             try {
                 await prisma.squad.update({
@@ -69,7 +126,6 @@ export async function excluirPresenca(id: string) {
             } catch (e) {}
         }
 
-        // 5. Agora sim, apaga o registro
         await prisma.attendance.delete({ where: { id } });
     }
 

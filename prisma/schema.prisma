@@ -37,8 +37,8 @@ model User {
   quizResults   QuizResult[]
   notifications Notification[]
 
-  // RELAÇÃO NOVA DO HISTÓRICO DE LEITURA
-  lessonHistory LessonHistory[] // <--- ADICIONE ISSO AQUI
+  // Histórico de Leitura
+  lessonHistory LessonHistory[]
 
   createdAt     DateTime  @default(now())
 }
@@ -62,29 +62,36 @@ model Squad {
 model Lesson {
   id          String   @id @default(cuid())
   title       String
-  content     String
+
+  // Atualização para suportar o novo editor
+  description String?  // <--- NOVO: Resumo da lição
+  videoUrl    String?  // <--- NOVO: Link do YouTube
+  content     String?  // (Mantido como opcional para backup de dados antigos)
+
   date        DateTime
   isPublished Boolean  @default(false)
 
   questions   Question[]
-
-  // RELAÇÃO NOVA DO HISTÓRICO DE LEITURA
-  lessonHistory LessonHistory[] // <--- ADICIONE ISSO AQUI TAMBÉM
+  lessonHistory LessonHistory[]
 }
 
 model Question {
-  id          String   @id @default(cuid())
-  lessonId    String
-  text        String
-  optionA     String
-  optionB     String
-  optionC     String
-  optionD     String
-  correctOption String
-  xpReward    Int      @default(50)
+  id            String   @id @default(cuid())
+  lessonId      String
 
-  lesson      Lesson   @relation(fields: [lessonId], references: [id])
-  results     QuizResult[]
+  // Atualização para suportar o novo editor
+  title         String   @default("") // <--- NOVO: Título da pergunta (O código novo usa esse)
+  text          String?  // (Mantido como opcional para backup)
+
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctOption String
+  xpReward      Int      @default(50)
+
+  lesson        Lesson   @relation(fields: [lessonId], references: [id])
+  results       QuizResult[]
 }
 
 model QuizResult {
@@ -128,7 +135,7 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id])
 }
 
-// --- HISTÓRICO DE LEITURA (NOVA TABELA) ---
+// --- HISTÓRICO DE LEITURA ---
 model LessonHistory {
   id        String   @id @default(cuid())
   userId    String
@@ -138,5 +145,5 @@ model LessonHistory {
   user      User     @relation(fields: [userId], references: [id])
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
 
-  @@unique([userId, lessonId]) // Garante que só lê 1 vez
+  @@unique([userId, lessonId])
 }
