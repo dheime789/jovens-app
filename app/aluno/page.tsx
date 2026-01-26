@@ -8,15 +8,14 @@ import {
     BookOpen,
     BrainCircuit,
     Flame,
-    MapPin,
-    CheckCircle2
+    CheckCircle2,
+    Clock // <--- Novo ícone para "Aguardando"
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
-import { marcarPresenca } from "./actions";
-import { VersiculoDoDia } from "@/components/VersiculoDoDia"; // <--- IMPORTAÇÃO NOVA
+import { VersiculoDoDia } from "@/components/VersiculoDoDia";
 
 export default async function AlunoDashboard() {
     const cookieStore = await cookies();
@@ -100,7 +99,7 @@ export default async function AlunoDashboard() {
 
             <div className="max-w-md mx-auto p-6 space-y-6">
 
-                {/* --- VERSÍCULO DO DIA (NOVIDADE) --- */}
+                {/* --- VERSÍCULO DO DIA --- */}
                 <VersiculoDoDia />
 
                 {/* CARTÃO DE NÍVEL */}
@@ -126,14 +125,11 @@ export default async function AlunoDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* --- ÁREA DE CHECK-IN INTELIGENTE --- */}
+                {/* --- ÁREA DE STATUS DA PRESENÇA (SEM BOTÃO) --- */}
                 <Card className="border-slate-800 bg-slate-900 overflow-hidden relative">
-                    {!presencaHoje && (
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-pink-600/20 blur-2xl rounded-full pointer-events-none"></div>
-                    )}
                     <CardContent className="p-0">
                         {presencaHoje ? (
-                            // SE JÁ MARCOU
+                            // CASO 1: Já tem presença (Confirmado)
                             <div className="flex items-center justify-between p-4 bg-green-950/20 border-l-4 border-green-500">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-green-500/20 p-2 rounded-full text-green-500">
@@ -141,28 +137,24 @@ export default async function AlunoDashboard() {
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-green-400">Presença Confirmada</h3>
-                                        <p className="text-xs text-green-500/70">Volte amanhã para mais XP!</p>
+                                        <p className="text-xs text-green-500/70">Líder validou sua presença! (+50 XP)</p>
                                     </div>
                                 </div>
                                 <span className="font-bold text-slate-500 text-sm">Feito ✓</span>
                             </div>
                         ) : (
-                            // SE NÃO MARCOU
-                            <form
-                                action={async (formData) => {
-                                    "use server"
-                                    await marcarPresenca(formData)
-                                }}
-                                className="p-4"
-                            >
-                                <div className="flex items-center gap-2 mb-3">
-                                    <MapPin className="text-pink-500" size={18} />
-                                    <span className="font-bold text-white">Está na igreja?</span>
+                            // CASO 2: Não tem presença (Aguardando Professor)
+                            <div className="flex items-center justify-between p-4 bg-slate-800/50 border-l-4 border-slate-600">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-slate-700/50 p-2 rounded-full text-slate-400">
+                                        <Clock size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-300">Aguardando Chamada</h3>
+                                        <p className="text-xs text-slate-500">Seu líder confirmará sua presença no culto.</p>
+                                    </div>
                                 </div>
-                                <Button className="w-full bg-pink-600 hover:bg-pink-700 font-bold h-12 shadow-lg shadow-pink-900/20 animate-pulse">
-                                    MARCAR PRESENÇA (+50 XP)
-                                </Button>
-                            </form>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
