@@ -3,27 +3,19 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// --- FUNÇÃO DE EXCLUIR LIÇÃO (CORRIGIDA PARA LIMPAR CACHE) ---
+// --- FUNÇÃO DE EXCLUIR LIÇÃO ---
 export async function excluirLicao(id: string) {
     try { await prisma.lessonHistory.deleteMany({ where: { lessonId: id } }); } catch (e) {}
-
     const perguntas = await prisma.question.findMany({ where: { lessonId: id }, select: { id: true } });
     const idsPerguntas = perguntas.map(p => p.id);
-
     if (idsPerguntas.length > 0) {
         await prisma.quizResult.deleteMany({ where: { questionId: { in: idsPerguntas } } });
     }
-
     await prisma.question.deleteMany({ where: { lessonId: id } });
-
-    // Apaga a lição
     await prisma.lesson.delete({ where: { id: id } });
-
-    // --- AQUI ESTÁ A MÁGICA ---
-    // Avisa todas as telas que a lista mudou
     revalidatePath("/professor");
     revalidatePath("/aluno");
-    revalidatePath("/aluno/licoes"); // <--- ESSA LINHA RESOLVE O SEU PROBLEMA
+    revalidatePath("/aluno/licoes");
 }
 
 // --- FUNÇÃO DE EXCLUIR ALUNO ---
@@ -45,6 +37,96 @@ export async function excluirAluno(id: string) {
 
     revalidatePath("/professor");
     revalidatePath("/aluno/ranking");
+}
+
+// --- FUNÇÃO DE EXCLUIR PRESENÇA (INTELIGENTE) ---
+// Essa é a função que resolve o seu problema do Ensaio!
+export async function excluirPresenca(id: string) {
+    // 1. Acha a presença antes de apagar para saber quem é o aluno
+    const presenca = await prisma.attendance.findUnique({
+        where: { id },
+        include: { user: true }
+    });
+
+    if (presenca) {
+        // 2. Define quantos pontos vamos tirar (50 se for EBD, 20 se for Culto)
+        // Se você usou apenas a função padrão, provavelmente é 50.
+        const pontosParaTirar = presenca.type === 'EBD' ? 50 : 20;
+
+        // 3. Tira os pontos do Aluno
+        await prisma.user.update({
+            where: { id: presenca.userId },
+            data: { xp: { decrement: pontosParaTirar } }
+        });
+
+        // 4. Tira os pontos da Tribo (se ele tiver tribo)
+        if (presenca.user.squadId) {
+            try {
+                await prisma.squad.update({
+                    where: { id: presenca.user.squadId },
+                    data: { totalXp: { decrement: pontosParaTirar } }
+                });
+            } catch (e) {}
+        }
+
+        // 5. Agora sim, apaga o registro
+        await prisma.attendance.delete({ where: { id } });
+    }
+
+    revalidatePath("/professor");
+    revalidatePath("/aluno");
+}
+
+// --- FUNÇÃO: PROFESSOR MARCA PRESENÇA ---
+export async function marcarPresencaPeloProfessor(alunoId: string) {
+    const inicioDoDia = new Date();
+    inicioDoDia.setHours(0, 0, 0, 0);
+    const fimDoDia = new Date();
+    fimDoDia.setHours(23, 59, 59, 999);
+
+    const jaMarcou = await prisma.attendance.findFirst({
+        where: { userId: alunoId, date: { gte: inicioDoDia, lte: fimDoDia } }
+    });
+
+    if (jaMarcou) return { success: false, message: "Já possui presença hoje." };
+
+    const aluno = await prisma.user.findUnique({ where: { id: alunoId } });
+    if (!aluno) return { success: false, message: "Aluno não encontrado." };
+
+    let novoStreak = 1;
+    if (aluno.lastActivity) {
+        const ultimaAtividade = new Date(aluno.lastActivity);
+        ultimaAtividade.setHours(0,0,0,0);
+        const ontem = new Date();
+        ontem.setDate(ontem.getDate() - 1);
+        ontem.setHours(0,0,0,0);
+
+        if (ultimaAtividade.getTime() === ontem.getTime()) {
+            novoStreak = aluno.currentStreak + 1;
+        } else if (ultimaAtividade.getTime() === inicioDoDia.getTime()) {
+            novoStreak = aluno.currentStreak;
+        }
+    }
+
+    await prisma.attendance.create({
+        data: { userId: alunoId, type: "EBD", date: new Date() }
+    });
+
+    await prisma.user.update({
+        where: { id: alunoId },
+        data: { xp: { increment: 50 }, currentStreak: novoStreak, lastActivity: new Date() }
+    });
+
+    if (aluno.squadId) {
+        await prisma.squad.update({
+            where: { id: aluno.squadId },
+            data: { totalXp: { increment: 50 } }
+        });
+    }
+
+    revalidatePath("/professor");
+    revalidatePath("/aluno");
+    return { success: true, message: "Presença confirmada!" };
 }
 
 // --- FUNÇÃO DE REFORMULAR TRIBOS ---
@@ -106,77 +188,4 @@ export async function sincronizarTudo() {
     }
     revalidatePath("/professor"); revalidatePath("/aluno");
     return { success: true, count: totalCorrigidos };
-}
-// ... (mantenha o resto do arquivo igual)
-
-// --- NOVO: PROFESSOR MARCA PRESENÇA PARA O ALUNO ---
-export async function marcarPresencaPeloProfessor(alunoId: string) {
-    "use server";
-
-    const inicioDoDia = new Date();
-    inicioDoDia.setHours(0, 0, 0, 0);
-    const fimDoDia = new Date();
-    fimDoDia.setHours(23, 59, 59, 999);
-
-    // 1. Verifica se já tem presença hoje
-    const jaMarcou = await prisma.attendance.findFirst({
-        where: {
-            userId: alunoId,
-            date: { gte: inicioDoDia, lte: fimDoDia }
-        }
-    });
-
-    if (jaMarcou) {
-        return { success: false, message: "Já possui presença hoje." };
-    }
-
-    // 2. Busca dados do aluno para calcular Streak
-    const aluno = await prisma.user.findUnique({ where: { id: alunoId } });
-    if (!aluno) return { success: false, message: "Aluno não encontrado." };
-
-    let novoStreak = 1;
-    if (aluno.lastActivity) {
-        const ultimaAtividade = new Date(aluno.lastActivity);
-        ultimaAtividade.setHours(0,0,0,0);
-        const ontem = new Date();
-        ontem.setDate(ontem.getDate() - 1);
-        ontem.setHours(0,0,0,0);
-
-        if (ultimaAtividade.getTime() === ontem.getTime()) {
-            novoStreak = aluno.currentStreak + 1;
-        } else if (ultimaAtividade.getTime() === inicioDoDia.getTime()) {
-            novoStreak = aluno.currentStreak;
-        }
-    }
-
-    // 3. Cria a presença
-    await prisma.attendance.create({
-        data: {
-            userId: alunoId,
-            type: "EBD", // Ou "Culto", se quiser diferenciar depois
-            date: new Date()
-        }
-    });
-
-    // 4. Atualiza o Aluno (+50 XP)
-    await prisma.user.update({
-        where: { id: alunoId },
-        data: {
-            xp: { increment: 50 },
-            currentStreak: novoStreak,
-            lastActivity: new Date()
-        }
-    });
-
-    // 5. Atualiza a Tribo (Se tiver)
-    if (aluno.squadId) {
-        await prisma.squad.update({
-            where: { id: aluno.squadId },
-            data: { totalXp: { increment: 50 } }
-        });
-    }
-
-    revalidatePath("/professor");
-    revalidatePath("/aluno"); // Atualiza a tela do aluno também
-    return { success: true, message: "Presença confirmada!" };
 }
